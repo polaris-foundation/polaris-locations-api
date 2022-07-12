@@ -1,6 +1,6 @@
 assertpy==1.*
 behave==1.*
-black==*
+black
 draymed==2.*
 environs==4.*
 faker==4.*
