@@ -1,0 +1,805 @@
+openapi: 3.0.3
+info:
+  description: A service for storing information about locations (Hospitals, Wards,
+    Bays and Beds)
+  title: DHOS Locations API
+  version: 1.0.0
+paths:
+  /running:
+    get:
+      summary: Verify service is running
+      description: Verifies that the service is running. Used for monitoring in kubernetes.
+      tags:
+      - monitoring
+      responses:
+        '200':
+          description: If we respond, we are running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  running:
+                    type: boolean
+                    example: true
+      operationId: flask_batteries_included.blueprint_monitoring.app_running
+  /version:
+    get:
+      summary: Get version information
+      description: Get the version number, circleci build number, and git hash.
+      tags:
+      - monitoring
+      responses:
+        '200':
+          description: Version numbers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  circle:
+                    type: string
+                    example: '1234'
+                  hash:
+                    type: string
+                    example: 366c204
+      operationId: flask_batteries_included.blueprint_monitoring.app_version
+  /dhos/v1/location:
+    post:
+      summary: Create location
+      description: Create a new location using the details provided in the request
+        body.
+      tags:
+      - location
+      requestBody:
+        description: Location details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationRequest'
+              x-body-name: location_details
+      responses:
+        '200':
+          description: New location
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponse'
+        default:
+          description: Error, e.g. 400 Bad Request, 503 Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      operationId: dhos_locations_api.blueprint_api.create_location
+      security:
+      - bearerAuth: []
+  /dhos/v1/location/bulk:
+    post:
+      summary: Create location
+      description: Create a new location using the details provided in the request
+        body.
+      tags:
+      - location
+      requestBody:
+        description: Location details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/LocationRequest'
+              x-body-name: location_list
+      responses:
+        '200':
+          description: New location
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  created:
+                    type: integer
+        default:
+          description: Error, e.g. 400 Bad Request, 503 Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      operationId: dhos_locations_api.blueprint_api.create_many_locations
+      security:
+      - bearerAuth: []
+  /dhos/v1/location/{location_id}:
+    patch:
+      summary: Update location
+      description: Update the location with the provided UUID using the details in
+        the request body.
+      tags:
+      - location
+      parameters:
+      - name: location_id
+        in: path
+        required: true
+        description: Location UUID
+        schema:
+          type: string
+          example: bba65af9-88d3-459b-8c09-c359873828f7
+      requestBody:
+        description: Location update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationUpdateRequest'
+              x-body-name: location_details
+      responses:
+        '200':
+          description: Updated location
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponse'
+        default:
+          description: Error, e.g. 400 Bad Request, 503 Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      operationId: dhos_locations_api.blueprint_api.update_location
+      security:
+      - bearerAuth: []
+    get:
+      summary: Get location by UUID
+      description: Get the location with the provided UUID. The 'return_parent_of_type'
+        query parameter can be used to instead get the parent location of a specific
+        type, for example the ward parent of a bed's location UUID.
+      tags:
+      - location
+      parameters:
+      - name: location_id
+        in: path
+        required: true
+        description: Location UUID
+        schema:
+          type: string
+          example: bba65af9-88d3-459b-8c09-c359873828f7
+      - name: return_parent_of_type
+        in: query
+        required: false
+        description: SNOMED code of a location type. If the requested location does
+          not match this location type, the endpoint will search through its parent
+          locations and respond with the first matching parent location of the requested
+          type.
+        schema:
+          type: string
+          example: '225746001'
+      - name: children
+        in: query
+        required: false
+        description: Whether to include child location UUIDs in the response
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: Requested location
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponse'
+        default:
+          description: Error, e.g. 400 Bad Request, 503 Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      operationId: dhos_locations_api.blueprint_api.get_location_by_uuid
+      security:
+      - bearerAuth: []
+  /dhos/v1/location/search:
+    get:
+      summary: Get all locations
+      description: Get all locations using the filters in the request parameters.
+      tags:
+      - location
+      parameters:
+      - name: ods_code
+        in: query
+        required: false
+        description: An ODS code to filter by
+        schema:
+          type: string
+          example: ABC-123
+      - name: location_types
+        in: query
+        required: false
+        description: A pipe-delimited list of location type SNOMED codes to filter
+          results by
+        style: pipeDelimited
+        schema:
+          type: array
+          nullable: true
+          items:
+            type: string
+            enum:
+            - '22232009'
+            - D0000009
+            - '225746001'
+            - '225730009'
+            - '229772003'
+            - '723231000000104'
+          example: 225746001|22232009
+      - name: active
+        in: query
+        required: false
+        description: An active status to filter by
+        schema:
+          type: boolean
+          example: true
+          nullable: true
+      - name: children
+        in: query
+        required: false
+        description: Whether to include child location UUIDs in the response
+        schema:
+          type: boolean
+          default: false
+      - name: product_name
+        in: query
+        required: false
+        description: One or more product names to filter on (comma separated or repeated
+          parameter)
+        schema:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          example: GDM
+      - name: compact
+        in: query
+        required: false
+        description: Whether to return results in compact form
+        schema:
+          type: boolean
+          default: false
+      - in: header
+        name: X-Location-Ids
+        description: List of location UUIDs, only used for clinicians
+        schema:
+          type: string
+          example: 09db61d2-2ad9-4878-beee-1225b720c205,5d68b104-38cb-48fe-a814-00ac1387ef17
+        required: false
+      responses:
+        '200':
+          description: List of locations
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/LocationResponse'
+        default:
+          description: Error, e.g. 400 Bad Request, 503 Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      operationId: dhos_locations_api.blueprint_api.search_locations
+      security:
+      - bearerAuth: []
+    post:
+      summary: Search locations by UUID
+      description: Search for a list of locations using the UUIDs provided in the
+        request body.
+      tags:
+      - location
+      parameters:
+      - name: ods_code
+        in: query
+        required: false
+        description: An ODS code to filter by
+        schema:
+          type: string
+          example: ABC-123
+      - name: location_types
+        in: query
+        required: false
+        description: A pipe-delimited list of location type SNOMED codes to filter
+          results by
+        style: pipeDelimited
+        schema:
+          type: array
+          nullable: true
+          items:
+            type: string
+            enum:
+            - '22232009'
+            - D0000009
+            - '225746001'
+            - '225730009'
+            - '229772003'
+            - '723231000000104'
+          example: 225746001|22232009
+      - name: active
+        in: query
+        required: false
+        description: An active status to filter by
+        schema:
+          type: boolean
+          nullable: true
+      - name: children
+        in: query
+        required: false
+        description: Whether to include child location UUIDs in the response
+        schema:
+          type: boolean
+          default: false
+      - name: compact
+        in: query
+        required: false
+        description: Whether to return results in compact form
+        schema:
+          type: boolean
+          default: false
+      - name: product_name
+        in: query
+        required: false
+        description: One or more product names to filter on (comma separated or repeated
+          parameter)
+        schema:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          example: GDM
+      requestBody:
+        description: Location UUIDs
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              nullable: true
+              items:
+                type: string
+                example: afd60502-da9e-4253-b6ee-f7ba97e82b93
+              x-body-name: location_uuids
+      responses:
+        '200':
+          description: List of locations
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/LocationResponse'
+        default:
+          description: Error, e.g. 400 Bad Request, 503 Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      operationId: dhos_locations_api.blueprint_api.post_search_locations
+      security:
+      - bearerAuth: []
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP response code
+          example: 404
+        message:
+          type: string
+          description: Message attached to response
+          example: Not Found
+      required:
+      - code
+      description: An error response in json format
+    LocationProductRequest:
+      type: object
+      properties:
+        product_name:
+          type: string
+          description: The product name
+          example: GDM
+        opened_date:
+          type: string
+          format: date
+          description: ISO8601 date for when product was opened for the location
+          example: '2020-01-01'
+        closed_date:
+          type: string
+          format: date
+          nullable: true
+          description: ISO8601 date for when product was closed for the location
+          example: '2020-05-01'
+      required:
+      - opened_date
+      - product_name
+    LocationRequest:
+      type: object
+      properties:
+        location_type:
+          type: string
+          description: Location type code
+          example: '22232009'
+        ods_code:
+          type: string
+          nullable: true
+          description: ODS code used by the EPR to refer to the location
+          example: JW1-34
+        display_name:
+          type: string
+          description: Name used to display the location in product UIs
+          example: John Radcliffe Hospital
+        active:
+          type: boolean
+          nullable: true
+          description: Whether the location is active
+          example: true
+        address_line_1:
+          type: string
+          nullable: true
+          description: First line of location address
+          example: 21 Spring Lane
+        address_line_2:
+          type: string
+          nullable: true
+          description: Second line of location address
+          example: Villageville
+        address_line_3:
+          type: string
+          nullable: true
+          description: Third line of location address
+          example: Townton
+        address_line_4:
+          type: string
+          nullable: true
+          description: Fourth line of location address
+          example: Cityland
+        postcode:
+          type: string
+          nullable: true
+          description: Location address postcode
+          example: OX1 1AA
+        country:
+          type: string
+          nullable: true
+          description: Location address country
+          example: United Kingdom
+        locality:
+          type: string
+          nullable: true
+          description: Location address locality
+          example: Oxfordshire
+        region:
+          type: string
+          nullable: true
+          description: Location address region
+          example: South East
+        score_system_default:
+          type: string
+          enum:
+          - news2
+          - meows
+          nullable: true
+          description: Default early warning score system for this location
+        dh_products:
+          type: array
+          description: Products with which location should be associated
+          items:
+            $ref: '#/components/schemas/LocationProductRequest'
+        parent:
+          type: string
+          nullable: true
+          description: Parent location UUID
+          example: eb42ee95-6aa6-46b7-9c3e-0e96526747a6
+        parent_ods_code:
+          type: string
+          nullable: true
+          description: ODS code used by EPR to refer to the location's parent
+          example: ABC-123
+      required:
+      - dh_products
+      - display_name
+      - location_type
+      description: Location request
+    LocationProductResponse:
+      type: object
+      properties:
+        product_name:
+          type: string
+          description: The product name
+          example: GDM
+        opened_date:
+          type: string
+          format: date
+          description: ISO8601 date for when product was opened for the location
+          example: '2020-01-01'
+        closed_date:
+          type: string
+          format: date
+          nullable: true
+          description: ISO8601 date for when product was closed for the location
+          example: '2020-05-01'
+        uuid:
+          type: string
+          description: Universally unique identifier for object
+          example: 2c4f1d24-2952-4d4e-b1d1-3637e33cc161
+        created:
+          type: string
+          description: When the object was created
+          example: '2017-09-23T08:29:19.123+00:00'
+        created_by:
+          type: string
+          description: UUID of the user that created the object
+          example: d26570d8-a2c9-4906-9c6a-ea1a98b8b80f
+        modified:
+          type: string
+          description: When the object was modified
+          example: '2017-09-23T08:29:19.123+00:00'
+        modified_by:
+          type: string
+          description: UUID of the user that modified the object
+          example: 2a0e26e5-21b6-463a-92e8-06d7290067d0
+      required:
+      - opened_date
+      - product_name
+      - uuid
+    ParentResponse:
+      type: object
+      properties:
+        location_type:
+          type: string
+          description: Location type code
+          example: '22232009'
+        ods_code:
+          type: string
+          nullable: true
+          description: ODS code used by the EPR to refer to the location
+          example: JW1-34
+        display_name:
+          type: string
+          description: Name used to display the location in product UIs
+          example: John Radcliffe Hospital
+        uuid:
+          type: string
+          description: Universally unique identifier for object
+          example: 2c4f1d24-2952-4d4e-b1d1-3637e33cc161
+        parent:
+          nullable: true
+          example: null
+          allOf:
+          - $ref: '#/components/schemas/ParentResponse'
+        score_system_default:
+          type: string
+          enum:
+          - news2
+          - meows
+          nullable: true
+          description: Default early warning score system for this location
+      required:
+      - display_name
+      - location_type
+      - uuid
+      description: Parent location subset of fields
+    LocationResponse:
+      type: object
+      properties:
+        location_type:
+          type: string
+          description: Location type code
+          example: '22232009'
+        ods_code:
+          type: string
+          nullable: true
+          description: ODS code used by the EPR to refer to the location
+          example: JW1-34
+        display_name:
+          type: string
+          description: Name used to display the location in product UIs
+          example: John Radcliffe Hospital
+        active:
+          type: boolean
+          nullable: true
+          description: Whether the location is active
+          example: true
+        address_line_1:
+          type: string
+          nullable: true
+          description: First line of location address
+          example: 21 Spring Lane
+        address_line_2:
+          type: string
+          nullable: true
+          description: Second line of location address
+          example: Villageville
+        address_line_3:
+          type: string
+          nullable: true
+          description: Third line of location address
+          example: Townton
+        address_line_4:
+          type: string
+          nullable: true
+          description: Fourth line of location address
+          example: Cityland
+        postcode:
+          type: string
+          nullable: true
+          description: Location address postcode
+          example: OX1 1AA
+        country:
+          type: string
+          nullable: true
+          description: Location address country
+          example: United Kingdom
+        locality:
+          type: string
+          nullable: true
+          description: Location address locality
+          example: Oxfordshire
+        region:
+          type: string
+          nullable: true
+          description: Location address region
+          example: South East
+        score_system_default:
+          type: string
+          enum:
+          - news2
+          - meows
+          nullable: true
+          description: Default early warning score system for this location
+        uuid:
+          type: string
+          description: Universally unique identifier for object
+          example: 2c4f1d24-2952-4d4e-b1d1-3637e33cc161
+        created:
+          type: string
+          description: When the object was created
+          example: '2017-09-23T08:29:19.123+00:00'
+        created_by:
+          type: string
+          description: UUID of the user that created the object
+          example: d26570d8-a2c9-4906-9c6a-ea1a98b8b80f
+        modified:
+          type: string
+          description: When the object was modified
+          example: '2017-09-23T08:29:19.123+00:00'
+        modified_by:
+          type: string
+          description: UUID of the user that modified the object
+          example: 2a0e26e5-21b6-463a-92e8-06d7290067d0
+        dh_products:
+          type: array
+          description: Products with which location is associated
+          items:
+            $ref: '#/components/schemas/LocationProductResponse'
+        parent:
+          nullable: true
+          description: Parent location
+          example:
+            uuid: 9d85305e-7a6c-4a37-82a2-21787994ce79
+            location_type: '22232009'
+            ods_code: AAA-111
+            display_name: Amber Hospital
+          allOf:
+          - $ref: '#/components/schemas/ParentResponse'
+        children:
+          type: array
+          description: UUIDs of child locations associated with this location
+          items:
+            type: string
+      required:
+      - display_name
+      - location_type
+      - uuid
+      description: Location response
+    LocationUpdateRequest:
+      type: object
+      properties:
+        active:
+          type: boolean
+          nullable: true
+          description: Whether the location is active
+          example: true
+        address_line_1:
+          type: string
+          nullable: true
+          description: First line of location address
+          example: 21 Spring Lane
+        address_line_2:
+          type: string
+          nullable: true
+          description: Second line of location address
+          example: Villageville
+        address_line_3:
+          type: string
+          nullable: true
+          description: Third line of location address
+          example: Townton
+        address_line_4:
+          type: string
+          nullable: true
+          description: Fourth line of location address
+          example: Cityland
+        postcode:
+          type: string
+          nullable: true
+          description: Location address postcode
+          example: OX1 1AA
+        country:
+          type: string
+          nullable: true
+          description: Location address country
+          example: United Kingdom
+        locality:
+          type: string
+          nullable: true
+          description: Location address locality
+          example: Oxfordshire
+        region:
+          type: string
+          nullable: true
+          description: Location address region
+          example: South East
+        score_system_default:
+          type: string
+          enum:
+          - news2
+          - meows
+          nullable: true
+          description: Default early warning score system for this location
+        location_type:
+          type: string
+          nullable: true
+          description: Location type code
+          example: '22232009'
+        parent_location:
+          type: string
+          nullable: true
+          description: Parent location UUID
+          example: eb42ee95-6aa6-46b7-9c3e-0e96526747a6
+        dh_products:
+          type: array
+          nullable: true
+          description: Products with which location should be associated
+          items:
+            $ref: '#/components/schemas/LocationProductRequest'
+      description: Location update request
+  responses:
+    BadRequest:
+      description: Bad or malformed request was received
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: The specified resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServiceUnavailable:
+      description: Service or dependent resource not available
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

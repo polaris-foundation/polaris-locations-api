@@ -1,0 +1,17 @@
+[paths]
+source =
+    dhos_locations_api/*
+
+[report]
+
+omit =
+  **/__main__.py
+  dhos_locations_api/app.py
+  dhos_locations_api/config.py
+  dhos_locations_api/autoapp.py
+  dhos_locations_api/blueprint_development/*.py
+
+fail_under = 95
+
+show_missing = true
+skip_covered = true

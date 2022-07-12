@@ -1,0 +1,37 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="pytest" type="tests" factoryName="py.test">
+    <module name="dhos-locations-api" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="PARENT_ENVS" value="true" />
+    <envs>
+      <env name="REDIS_INSTALLED" value="False" />
+      <env name="RABBITMQ_DISABLED" value="true" />
+      <env name="ENVIRONMENT" value="DEVELOPMENT" />
+      <env name="AUTH0_AUDIENCE" value="https://dev.sensynehealth.com/" />
+      <env name="PROXY_URL" value="http://localhost/" />
+      <env name="LOG_FORMAT" value="colour" />
+      <env name="LOG_LEVEL" value="DEBUG" />
+      <env name="DATABASE_USER" value="dhos-user" />
+      <env name="DATABASE_PASSWORD" value="TopSecretPassword" />
+      <env name="DATABASE_NAME" value="dhos-db" />
+      <env name="FLASK_APP" value="dhos_locations_api/autoapp.py" />
+      <env name="DATABASE_HOST" value="localhost" />
+      <env name="DATABASE_PORT" value="15432" />
+    </envs>
+    <option name="SDK_HOME" value="$PROJECT_DIR$/.tox/py39/bin/python" />
+    <option name="WORKING_DIRECTORY" value="" />
+    <option name="IS_MODULE_SDK" value="false" />
+    <option name="ADD_CONTENT_ROOTS" value="true" />
+    <option name="ADD_SOURCE_ROOTS" value="true" />
+    <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+    <option name="_new_keywords" value="&quot;&quot;" />
+    <option name="_new_parameters" value="&quot;&quot;" />
+    <option name="_new_additionalArguments" value="&quot;--lf&quot;" />
+    <option name="_new_target" value="&quot;&quot;" />
+    <option name="_new_targetType" value="&quot;PATH&quot;" />
+    <method v="2">
+      <option name="ToolBeforeRunTask" enabled="true" actionId="Tool_Docker_Docker stop all" />
+      <option name="ToolBeforeRunTask" enabled="true" actionId="Tool_Docker_Run Postgres" />
+    </method>
+  </configuration>
+</component>

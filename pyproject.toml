@@ -1,0 +1,40 @@
+[tool.poetry]
+name = "dhos-locations-api"
+version = "0.0.1"
+description = "DHOS Locations API"
+authors = ["Duncan Booth <duncan.booth@sensynehealth.com>"]
+keywords = ["Locations"]
+repository = "https://github.com/draysontechnologies/dhos-locations -api"
+
+[[tool.poetry.source]]
+name = "sensynehealth"
+url = "https://pypi.fury.io/sensynehealth/"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+draymed = "2.*"
+flask-batteries-included = {version = "3.*", extras = ["apispec", "pgsql"]}
+she-logging = "1.*"
+waitress = "2.*"
+
+[tool.poetry.dev-dependencies]
+bandit = "*"
+black = "*"
+coloredlogs = "*"
+coverage = "*"
+isort = "*"
+jsonschema = "3.*"
+mock = "*"
+mypy = "*"
+pytest = "*"
+pytest-dhos = {version = "*", extras=["fbi"]}
+pytest-flask = "*"
+pytest-freezegun = "*"
+pytest-mock = "*"
+requests_mock = "1.8.*"
+safety = "*"
+tox = "*"
+types-mock = "*"
+types-PyYAML = "*"
+types-requests = "*"
+sadisplay = "*"
