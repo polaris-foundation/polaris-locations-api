@@ -1,14 +1,10 @@
 [tool.poetry]
 name = "dhos-locations-api"
 version = "0.0.1"
-description = "DHOS Locations API"
+description = "Polaris Locations API"
 authors = ["Duncan Booth <duncan.booth@sensynehealth.com>"]
-keywords = ["Locations"]
-repository = "https://github.com/draysontechnologies/dhos-locations -api"
-
-[[tool.poetry.source]]
-name = "sensynehealth"
-url = "https://pypi.fury.io/sensynehealth/"
+keywords = ["Locations", "Polaris"]
+repository = "https://github.com/polaris-foundation/polaris-locations-api"
 
 [tool.poetry.dependencies]
 python = "^3.9"
