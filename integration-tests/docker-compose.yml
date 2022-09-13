@@ -34,8 +34,6 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
-      args:
-        - PIP_EXTRA_INDEX_URL
     environment:
       <<: *COMMON_ENVIRONMENT
       BEHAVE_ARGS: ${BEHAVE_ARGS:-}
@@ -52,8 +50,6 @@ services:
     container_name: "dhos-locations-api"
     build:
       context: ..
-      args:
-        - GEMFURY_DOWNLOAD_KEY
     environment:
       <<: *COMMON_ENVIRONMENT
       DATABASE_NAME: dhos-locations-api-db
